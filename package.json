@@ -1,0 +1,20 @@
+{
+  "name": "dupe-my-dinner-seed-tools",
+  "version": "1.0.0",
+  "description": "One-time data tools for seeding ingredient_map SKUs",
+  "private": true,
+  "scripts": {
+    "lookup": "ts-node sku_lookup.ts",
+    "lookup:write": "ts-node sku_lookup.ts --write",
+    "lookup:review": "ts-node sku_lookup.ts --review"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.0",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
