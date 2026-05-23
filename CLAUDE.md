@@ -42,6 +42,8 @@ seed_ingredient_map_produce.sql    # ✅ run
 seed_ingredient_map_pantry.sql     # ✅ run
 seed_ingredient_map_core.sql       # ✅ run
 sku_manual_resolutions.sql         # ✅ run
+add_budget_tier_ingredient_map.sql  # ✅ run
+add_recipe_cache_columns.sql        # ✅ run
 sku_lookup.ts                      # one-time SKU seeding tool
 package.json                       # seed tool dependencies only
 package-lock.json
@@ -226,7 +228,7 @@ perMealCost = groceryTotal ÷ (servingsPerBatch × timesMaking)
 
 ## Claude API usage
 
-- **Model:** `claude-sonnet-4-20250514`
+- **Model:** `claude-sonnet-4-6`
 - **Always use structured JSON output.** No free-text parsing.
 - **Recipe cache key:** `sha256(dish_name + servings + calorie_target + dietary_flags)`
 - **Cache TTL:** recipes 7 days · prices 24 hours · disambiguation 30 days
