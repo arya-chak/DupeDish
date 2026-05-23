@@ -1,9 +1,14 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
 import { z } from 'zod';
+
+config({ override: true });
 
 const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_KEY: z.string().min(1),
+  ANTHROPIC_API_KEY: z.string().min(1),
+  UPSTASH_REDIS_REST_URL: z.string().url(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
   PORT: z.coerce.number().default(3000),
 });
 

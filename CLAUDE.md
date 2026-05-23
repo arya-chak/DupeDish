@@ -55,9 +55,11 @@ CLAUDE.md
 ### What does NOT exist yet
 - [ ] Expo / React Native app
 - [x] Hono API server — `server/` scaffolded, all four stub routes verified
-- [ ] Shared TypeScript types
+- [x] Shared TypeScript types — `server/src/types/recipe.ts`
 - [ ] Any auth, screens, or UI
-- [ ] Any backend routes or services (services are stubs)
+- [x] `recipeService.ts` — implemented (cache waterfall + Claude API)
+- [ ] `priceService.ts` — stub
+- [ ] `savingsService.ts` — stub
 
 *(Check items off as they are built)*
 
@@ -86,6 +88,20 @@ CLAUDE.md
 - Supabase client uses service role key (bypasses RLS) — never use anon key server-side
 - Env vars validated at startup via Zod in `src/lib/env.ts` — server refuses to start with missing vars
 - Services in `src/services/` are stubs until their respective implementation sessions
+- `recipeService.ts` is implemented; `priceService.ts` and `savingsService.ts` remain stubs
+
+---
+
+## Recipe service
+
+- **Cache key** excludes `timesMaking` — quantities are scaled in the price service, not here
+- **Budget** is not a recipe service concern — handled in price service via `budget_tier`
+- **Temperature is `0`** on all Claude calls — deterministic output only
+- **`RecipeGenerationError`** is the typed error class — route handlers catch this for 500 responses
+- **Cache waterfall:** Redis (`recipe:{sha256}`) → Postgres `recipe_cache` → Claude API
+  - Redis TTL: 7 days. Postgres re-populates Redis on hit.
+  - Cache write failure (Postgres or Redis) is logged but non-fatal — request still returns recipe
+- **`POST /api/search`** now fully wired for recipe generation; prices/savings wired in later sessions
 
 ---
 
@@ -143,6 +159,9 @@ SUPABASE_SERVICE_KEY
 | `is_produce = true` | Skip Kroger API. Use `usda_avg_price` directly. |
 | `is_pantry_staple = true` | Eligible for pantry deduction in savings calc |
 | `preferred_sku` set | Human-verified. Always wins over a live search result. |
+| `budget_tier` | `'premium'` / `'standard'` / `'budget'` — used by the price service for budget substitution logic. |
+
+`budget_tier` is a live column (added via `add_budget_tier_ingredient_map.sql`). Substitution target mapping — i.e. *which row to swap in* when downgrading a premium item — is still an **open decision for the price service implementation session**. Options: FK column `budget_substitute_id` on `ingredient_map`, a separate `ingredient_substitutions` table, or runtime Claude suggestions. No decision has been made here — resolve it in the price service session before writing any substitution logic.
 
 Never assign a `kroger_sku` to a produce row.
 When checking `is_produce`, rely on the DB flag — not string matching
