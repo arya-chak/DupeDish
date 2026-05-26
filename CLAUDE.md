@@ -44,6 +44,8 @@ seed_ingredient_map_core.sql       # ✅ run
 sku_manual_resolutions.sql         # ✅ run
 add_budget_tier_ingredient_map.sql  # ✅ run
 add_recipe_cache_columns.sql        # ✅ run
+supabase/add_ingredient_substitutions.sql  # ⬜ deploy to Supabase
+supabase/seed_ingredient_substitutions.sql # ⬜ run after above
 sku_lookup.ts                      # one-time SKU seeding tool
 package.json                       # seed tool dependencies only
 package-lock.json
@@ -60,7 +62,7 @@ CLAUDE.md
 - [x] Shared TypeScript types — `server/src/types/recipe.ts`
 - [ ] Any auth, screens, or UI
 - [x] `recipeService.ts` — implemented (cache waterfall + Claude API)
-- [ ] `priceService.ts` — stub
+- [x] `priceService.ts` — implemented
 - [ ] `savingsService.ts` — stub
 
 *(Check items off as they are built)*
@@ -104,6 +106,24 @@ CLAUDE.md
   - Redis TTL: 7 days. Postgres re-populates Redis on hit.
   - Cache write failure (Postgres or Redis) is logged but non-fatal — request still returns recipe
 - **`POST /api/search`** now fully wired for recipe generation; prices/savings wired in later sessions
+
+---
+
+## Price service
+
+- **Cache key:** `price:{recipeId}:{locationId}:{budgetMode}` — Redis only, 24hr TTL
+- **Kroger token key:** `kroger:access_token` — 28min TTL, managed by `krogerAuth.ts`
+- **`recipeId`** in `PriceRequest` is the sha256 `cache_key` from `recipe_cache` (same hash the recipe service generates and returns)
+- **Produce ingredients** skip all API calls — priced directly from `usda_avg_price`; `is_produce` flag is authoritative (never infer from ingredient name)
+- **Bucket B (known SKU):** one batch call to `/v1/products?filter.productId=sku1,sku2,...` — never one call per ingredient
+- **Bucket C (live name search):** sequential with 100ms delay; on miss falls through to `usda_avg_price` with `isEstimate=true`
+- **Bucket C SKU writeback** is async fire-and-forget — never blocks the response
+- **`inStock`** is always `false` for Kroger results (`inventory.status` is always `"unknown"`) and `undefined` for USDA; do not surface in MVP UI
+- **`ingredient_substitutions` table:** RLS on, server-read only; no client writes. Resolved design: separate table (Option B). Schema in `supabase/add_ingredient_substitutions.sql`
+- **`ingredient_map` primary key is `canonical_name` (text)** — the substitutions table FKs reference `canonical_name`, not a UUID id. The original brief assumed a UUID id column; adapt accordingly.
+- **Walmart** is not implemented for MVP — `GroceryProvider` interface exists for clean future addition. Walmart's Recipe & Bundles API likely supports a batch `matchIngredients` call — the interface comment reserves this as an optional future method
+- **`source` field** on `ResolvedIngredient` is `'kroger' | 'usda_avg'` for MVP — `'walmart'` is valid in the type but unused until post-MVP
+- **`PriceServiceError`** is the typed error class — route handlers catch this for 500 responses
 
 ---
 
@@ -163,7 +183,7 @@ SUPABASE_SERVICE_KEY
 | `preferred_sku` set | Human-verified. Always wins over a live search result. |
 | `budget_tier` | `'premium'` / `'standard'` / `'budget'` — used by the price service for budget substitution logic. |
 
-`budget_tier` is a live column (added via `add_budget_tier_ingredient_map.sql`). Substitution target mapping — i.e. *which row to swap in* when downgrading a premium item — is still an **open decision for the price service implementation session**. Options: FK column `budget_substitute_id` on `ingredient_map`, a separate `ingredient_substitutions` table, or runtime Claude suggestions. No decision has been made here — resolve it in the price service session before writing any substitution logic.
+`budget_tier` is a live column (added via `add_budget_tier_ingredient_map.sql`). Substitution target mapping uses a separate `ingredient_substitutions` table (Option B — decided in price service session). Schema in `supabase/add_ingredient_substitutions.sql`. The table FKs reference `canonical_name` (text PK), not a UUID id.
 
 Never assign a `kroger_sku` to a produce row.
 When checking `is_produce`, rely on the DB flag — not string matching
