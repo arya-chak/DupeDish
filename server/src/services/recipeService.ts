@@ -19,7 +19,7 @@ practical for a home cook, and optimized for the constraints given. \
 Always respond with valid JSON matching the schema exactly. \
 Never add commentary outside the JSON.`;
 
-function buildCacheKey(input: RecipeInput): string {
+export function buildCacheKey(input: RecipeInput): string {
   const flags = [...(input.dietaryFlags ?? [])].sort().join(",");
   const raw = [
     input.dishName.toLowerCase().trim(),

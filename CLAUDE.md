@@ -63,7 +63,7 @@ CLAUDE.md
 - [ ] Any auth, screens, or UI
 - [x] `recipeService.ts` — implemented (cache waterfall + Claude API)
 - [x] `priceService.ts` — implemented
-- [ ] `savingsService.ts` — stub
+- [x] `savingsService.ts` — implemented (pure function + unit tests)
 
 *(Check items off as they are built)*
 
@@ -243,6 +243,27 @@ perMealCost = groceryTotal ÷ (servingsPerBatch × timesMaking)
 - Deduct pantry staples the user already owns from `groceryTotal`.
 - Delivery path: add ~$18–22 flat for Instacart fees when user opts in.
 - Annual projection: `perMealSavings × timesMaking × 52`
+
+---
+
+## Savings service
+
+- `savingsService.ts` is a pure function — no DB or network calls inside it.
+- Route handler pre-fetches two things before calling the service:
+  1. `pantry_items` for the user (array of `canonical_name`)
+  2. Ledger summary: `{ totalSaved, weeksActive }` — pass `undefined` if no rows exist
+- Annual savings uses ledger history when available; falls back to
+  `perMealSavings × timesMaking × 52` estimate. `annualSavingsIsEstimate`
+  flag tells the client which mode.
+- `perMealSavings` is returned raw — can be negative. Never clamp.
+  `isCheaperAtRestaurant: true` is the flag for the client to handle UX.
+- No delivery fee math in the savings service. Export `DELIVERY_FEE_DISCLAIMER`
+  string constant for the client. The Instacart integration is a deep-link
+  handoff — we do not have real fee data at search time.
+- Ledger writes happen in `POST /api/dupes/:id/cooked` only — not in the
+  savings service and not at search time.
+- Route handler writes savings fields to `dupes` after getting `SavingsResult`.
+  The savings service never writes to the DB.
 
 ---
 
