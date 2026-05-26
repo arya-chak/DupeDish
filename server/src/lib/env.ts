@@ -11,6 +11,7 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
   KROGER_CLIENT_ID: z.string().min(1),
   KROGER_CLIENT_SECRET: z.string().min(1),
+  INSTACART_API_KEY: z.string().optional(),
   PORT: z.coerce.number().default(3000),
 });
 

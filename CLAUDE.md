@@ -64,6 +64,7 @@ CLAUDE.md
 - [x] `recipeService.ts` — implemented (cache waterfall + Claude API)
 - [x] `priceService.ts` — implemented
 - [x] `savingsService.ts` — implemented (pure function + unit tests)
+- [x] `cartService.ts` — implemented (Instacart IDP, Redis cache, graceful null on missing key)
 
 *(Check items off as they are built)*
 
@@ -88,11 +89,10 @@ CLAUDE.md
 
 - Lives in `server/` directory at the repo root
 - Node.js + Hono, TypeScript, `tsx` for dev (`npm run dev`)
-- Four routes: `POST /api/search`, `GET /api/recipe`, `GET /api/prices`, `POST /api/cart-link`
+- Four routes: `POST /api/search`, `GET /api/recipe`, `GET /api/prices`, `POST /api/cart-link` (all implemented)
 - Supabase client uses service role key (bypasses RLS) — never use anon key server-side
 - Env vars validated at startup via Zod in `src/lib/env.ts` — server refuses to start with missing vars
-- Services in `src/services/` are stubs until their respective implementation sessions
-- `recipeService.ts` is implemented; `priceService.ts` and `savingsService.ts` remain stubs
+- `recipeService.ts`, `priceService.ts`, `savingsService.ts`, and `cartService.ts` are all implemented
 
 ---
 
@@ -264,6 +264,22 @@ perMealCost = groceryTotal ÷ (servingsPerBatch × timesMaking)
   savings service and not at search time.
 - Route handler writes savings fields to `dupes` after getting `SavingsResult`.
   The savings service never writes to the DB.
+
+---
+
+## Cart service
+
+- `INSTACART_API_KEY` is optional — server starts without it.
+  Route always returns `{ cartLink: string | null }`. Client handles null.
+- Cart link is on-demand only. Never generated at search time.
+- Client sends pre-filtered ingredients (non-pantry items only).
+  Server does not re-fetch pantry in this route.
+- Cache key: `cart_link:{sha256(ingredients sorted by name)}`, TTL 7 days.
+- IDP API endpoint: `POST https://connect.instacart.com/idp/v1/products/products_link`
+- Instacart does not support SKU lookup — product names only for MVP.
+- `unit` is omitted from `line_item_measurements` when not provided; do not send an empty object.
+- To get an API key: https://www.instacart.com/company/business/developers
+  Once approved, also sign up for Impact affiliate program for commission tracking.
 
 ---
 
