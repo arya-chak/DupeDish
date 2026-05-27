@@ -7,6 +7,7 @@ import recipeRoute from './routes/recipe';
 import pricesRoute from './routes/prices';
 import cartRoute from './routes/cart';
 import dupesRoute from './routes/dupes';
+import pantryRoute from './routes/pantry';
 
 const app = new Hono();
 
@@ -17,6 +18,7 @@ app.route('/api/recipe', recipeRoute);
 app.route('/api/prices', pricesRoute);
 app.route('/api/cart-link', cartRoute);
 app.route('/api/dupes', dupesRoute);
+app.route('/api/pantry', pantryRoute);
 
 app.onError((err, c) => {
   console.error(err);

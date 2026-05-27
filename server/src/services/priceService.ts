@@ -49,6 +49,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function resolvePrice(req: PriceRequest): Promise<PriceResponse> {
+  const pantrySet = new Set(req.pantryItems ?? []);
+
   // ── 1. Redis cache ────────────────────────────────────────────────────────
   const cacheKey = `price:${req.recipeId}:${req.locationId}:${req.budgetMode}`;
   const cached = await redis.get<PriceResponse>(cacheKey);
@@ -276,7 +278,9 @@ export async function resolvePrice(req: PriceRequest): Promise<PriceResponse> {
       }
     }
 
-    const price = scalePrice(ingredient.quantity, ingredient.unit, packageSize, rawPrice, mapRow.canonical_name);
+    const scaledPrice = scalePrice(ingredient.quantity, ingredient.unit, packageSize, rawPrice, mapRow.canonical_name);
+    const pantryOwned = pantrySet.has(mapRow.canonical_name);
+    const price = pantryOwned ? 0 : scaledPrice;
     const pricePerUnit = ingredient.quantity > 0 ? price / ingredient.quantity : 0;
 
     resolvedIngredients.push({
@@ -289,6 +293,7 @@ export async function resolvePrice(req: PriceRequest): Promise<PriceResponse> {
       isEstimate,
       krogerSku,
       inStock,
+      ...(pantryOwned ? { pantryOwned: true } : {}),
     });
   }
 

@@ -4,6 +4,7 @@ export interface PriceRequest {
   servings: number;
   timesMaking: number;
   budgetMode: boolean;
+  pantryItems?: string[]; // canonical_names of user-owned items — zeroes out their cost
 }
 
 export interface ResolvedIngredient {
@@ -16,6 +17,7 @@ export interface ResolvedIngredient {
   isEstimate: boolean;
   krogerSku?: string;
   inStock?: boolean; // undefined when source = usda_avg
+  pantryOwned?: boolean; // true when user owns this item; price is zeroed out
 }
 
 export interface Substitution {

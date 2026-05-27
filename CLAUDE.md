@@ -65,6 +65,8 @@ CLAUDE.md
 - [x] `priceService.ts` — implemented
 - [x] `savingsService.ts` — implemented (pure function + unit tests)
 - [x] `cartService.ts` — implemented (Instacart IDP, Redis cache, graceful null on missing key)
+- [x] `pantryService.ts` — implemented (getUserPantry, addPantryItems, removePantryItem, getStaplesWithOwnership)
+- [x] Pantry routes — GET/POST/DELETE /api/pantry, GET /api/pantry/staples
 
 *(Check items off as they are built)*
 
@@ -280,6 +282,18 @@ perMealCost = groceryTotal ÷ (servingsPerBatch × timesMaking)
 - `unit` is omitted from `line_item_measurements` when not provided; do not send an empty object.
 - To get an API key: https://www.instacart.com/company/business/developers
   Once approved, also sign up for Impact affiliate program for commission tracking.
+
+---
+
+## Pantry service
+
+- Route handler fetches pantry items and passes to priceService — priceService is not DB-aware on its own
+- `POST /api/pantry` accepts single object or array; route coerces to array before service call
+- `DELETE /api/pantry/:canonicalName` uses URL-encoded canonical_name as the key, not UUID id; returns 404 if no row deleted
+- `GET /api/pantry/staples` does two parallel Supabase queries (all staples + user's owned items) and joins in code — owned flag baked in, client does no joining
+- `/api/pantry/staples` is registered before `/:canonicalName` in the router to prevent shadowing
+- All four routes require `?userId=` query param (no JWT middleware yet — consistent with existing routes)
+- `GET /api/prices` now accepts optional `?userId=` and, when present, fetches pantry and passes canonical_names to `resolvePrice`; priceService zeroes out owned items' cost and sets `pantryOwned: true` on those `ResolvedIngredient` entries
 
 ---
 

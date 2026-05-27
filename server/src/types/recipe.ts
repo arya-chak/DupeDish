@@ -44,3 +44,22 @@ export class RecipeGenerationError extends Error {
     this.name = "RecipeGenerationError";
   }
 }
+
+export interface PantryItem {
+  id: string;
+  canonical_name: string;
+  quantity: number | null;
+  unit: string | null;
+}
+
+export interface PantryItemInput {
+  canonical_name: string;
+  quantity?: number;
+  unit?: string;
+}
+
+export interface Staple {
+  canonical_name: string;
+  unit: string;
+  owned: boolean;
+}
